@@ -1,0 +1,15 @@
+Use case: stylized-concept
+Asset type: Unity 2D sprite atlas for a fantasy game player character
+
+Primary request: Create one original anime 2D fantasy {0} sprite atlas with a genuinely transparent alpha background. Exactly 12 equal cells arranged as 3 rows by 4 columns. The same full-body character appears in every cell, three-quarter view facing right, with feet consistently aligned to the bottom baseline.
+
+Animation layout:
+- Row 1: idle, 4 subtle sequential idle frames.
+- Row 2: attack, 4 sequential rightward attack frames appropriate to the {0} class and its weapon or staff.
+- Row 3: death, 4 sequential defeated/falling frames ending at rest.
+
+Style/medium: original polished anime RPG game sprite, bright readable silhouette, crisp outlines, no pixel art. Use the player-side palette of blue, white, and antique gold. Select class-appropriate clothing, armor, weapon, or staff without borrowing from an existing game or character.
+
+Composition/framing: a perfectly regular 3 by 4 atlas intended for 256x256 cells. Keep the subject fully inside each cell; do not overlap, crop, or change the character's scale between frames.
+
+Constraints: genuinely transparent alpha background and transparent padding. Never draw a black background, white background, gray background, checkerboard, transparency-checker pattern, scenery, floor, tile, shadow outside the cell, labels, grid lines, words, logos, or watermark.

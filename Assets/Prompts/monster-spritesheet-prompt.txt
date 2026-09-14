@@ -1,0 +1,16 @@
+Use case: stylized-concept
+Asset type: Unity 2D sprite atlas for a fantasy monster
+
+Primary request: Create one original dark fantasy {0} monster sprite atlas with a genuinely transparent alpha background. Exactly 16 equal cells arranged as 4 rows by 4 columns. The same full-body monster appears in every cell, three-quarter view facing right, with feet or paws consistently aligned to the bottom baseline.
+
+Animation layout:
+- Row 1: idle, 4 subtle sequential idle frames.
+- Row 2: attack, 4 sequential rightward attack frames appropriate to the {0} monster.
+- Row 3: move, 4 sequential rightward locomotion frames.
+- Row 4: death, 4 sequential defeated/falling frames ending at rest.
+
+Style/medium: original polished anime RPG game sprite, readable hostile silhouette, crisp outlines, no pixel art. Use charcoal/black as the base with restrained crimson, magenta, or red accents. Do not borrow from an existing game or character.
+
+Composition/framing: a perfectly regular 4 by 4 atlas intended for 256x256 cells. Keep the subject fully inside each cell; do not overlap, crop, or change the monster's scale between frames.
+
+Constraints: genuinely transparent alpha background and transparent padding. Never draw a black background, white background, gray background, checkerboard, transparency-checker pattern, scenery, floor, tile, labels, grid lines, words, logos, or watermark.
