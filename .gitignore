@@ -1,4 +1,4 @@
-# Unity generated folders
+# Unity-generated folders
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -6,14 +6,39 @@
 [Bb]uilds/
 [Ll]ogs/
 [Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Unity-generated files
+sysinfo.txt
+
+# Build output and platform artifacts
+ExportedObj/
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Unity services
+crashlytics-build.properties
 
 # IDE and OS files
 .vs/
 .vscode/
 .idea/
+.consulo/
+.gradle/
 *.csproj
 *.sln
 *.user
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
 *.tmp
+.DS_Store
 Thumbs.db
 Desktop.ini

@@ -1,6 +1,6 @@
 using System.IO;
-using System.Text.Json;
 using MakeMeHero.Core;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace MakeMeHero.Game
@@ -9,7 +9,7 @@ namespace MakeMeHero.Game
     public sealed class ResearchJsonExporter
     {
         private readonly string _rootDirectory;
-        private readonly JsonSerializerOptions _options = new JsonSerializerOptions { WriteIndented = true };
+        private readonly JsonSerializerSettings _options = new JsonSerializerSettings { Formatting = Formatting.Indented };
 
         public ResearchJsonExporter(string rootDirectory) { _rootDirectory = rootDirectory; }
 
@@ -18,11 +18,11 @@ namespace MakeMeHero.Game
             var runDirectory = Path.Combine(_rootDirectory, log.Metadata.RunId);
             var daysDirectory = Path.Combine(runDirectory, "days");
             Directory.CreateDirectory(daysDirectory);
-            File.WriteAllText(Path.Combine(runDirectory, "run.json"), JsonSerializer.Serialize(new RunExportSummary(log), _options));
+            File.WriteAllText(Path.Combine(runDirectory, "run.json"), JsonConvert.SerializeObject(new RunExportSummary(log), _options));
             foreach (var day in log.DailySnapshots)
             {
                 var filename = "day-" + day.DayNumber.ToString("000") + ".json";
-                File.WriteAllText(Path.Combine(daysDirectory, filename), JsonSerializer.Serialize(day, _options));
+                File.WriteAllText(Path.Combine(daysDirectory, filename), JsonConvert.SerializeObject(day, _options));
             }
         }
 

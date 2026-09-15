@@ -65,7 +65,7 @@ namespace MakeMeHero.Game
                     instance = _available.Pop();
                     _availableIds.Remove(instance.GetInstanceID());
                 }
-                else instance = Object.Instantiate(_prefab, _root);
+                else instance = UnityEngine.Object.Instantiate(_prefab, _root);
                 instance.transform.SetParent(activeRoot, false);
                 instance.gameObject.SetActive(true);
                 return instance;
