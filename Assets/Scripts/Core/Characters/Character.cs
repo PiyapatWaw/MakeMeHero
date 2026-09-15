@@ -19,5 +19,8 @@ namespace MakeMeHero.Core
         public void Restore() { Hp = MaximumHp; }
         public void ReceiveDamage(decimal amount) { Hp = Math.Max(0m, Hp - amount); }
         public void ReceiveHeal(decimal amount) { Hp = Math.Min(MaximumHp, Hp + amount); }
+        internal void IncreaseMaximumHp(decimal amount) { MaximumHp += amount; Hp += amount; }
+        internal void IncreaseAttackDamage(decimal amount) { AttackDamage += amount; }
+        internal void ReduceAttackInterval(decimal amount, decimal minimum) { AttackInterval = Math.Max(minimum, AttackInterval - amount); }
     }
 }
