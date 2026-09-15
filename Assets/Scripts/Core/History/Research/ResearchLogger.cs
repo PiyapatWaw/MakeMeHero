@@ -19,15 +19,21 @@ namespace MakeMeHero.Core
             if (combatEvent.Type == EventType.Recruited || combatEvent.Type == EventType.Deployed || combatEvent.Type == EventType.Undeployed || combatEvent.Type == EventType.RankUp)
             {
                 _pendingDecisions.Add(new DevelopmentDecision(combatEvent.Type, combatEvent.SourceId, combatEvent.Day, combatEvent.Time, combatEvent.Value, combatEvent.Detail));
+                if (combatEvent.Type == EventType.Recruited)
+                {
+                    var hero = run.FindHero(combatEvent.SourceId);
+                    if (hero != null) _log.EnsureCharacterHistory(new UnitStateSnapshot(hero), combatEvent.Day);
+                }
             }
             if (combatEvent.Type == EventType.EvolutionApplied)
             {
                 var audit = run.EvolutionAudits.LastOrDefault(x => x.Decision.DecisionId == combatEvent.Detail);
-                if (audit != null) _pendingDecisions.Add(new DevelopmentDecision(audit, combatEvent.Day, combatEvent.Time));
+                if (audit != null) { _pendingDecisions.Add(new DevelopmentDecision(audit, combatEvent.Day, combatEvent.Time)); _log.RecordEvolution(audit); }
             }
             if (combatEvent.Type == EventType.DayStarted)
             {
                 var before = BoardSnapshot.Capture(run);
+                foreach (var hero in before.Units.Where(x => x.Kind == UnitKind.Hero)) _log.EnsureCharacterHistory(hero, combatEvent.Day);
                 _activeDay = new DailySnapshot(combatEvent.Day, before, new EncounterInfo((int)combatEvent.Value, combatEvent.Detail, 1m), new List<DevelopmentDecision>(_pendingDecisions));
                 _pendingDecisions.Clear(); _accumulator.Start(before);
                 return;
@@ -40,6 +46,8 @@ namespace MakeMeHero.Core
                 if (combatEvent.Type == EventType.DayCompleted) { _activeDay.CompleteReward(BoardSnapshot.Capture(run)); _log.AddSnapshot(_activeDay); _activeDay = null; }
                 if (combatEvent.Type == EventType.RunLost) { _activeDay.CompleteBattle(BoardSnapshot.Capture(run), _accumulator.Complete(BoardSnapshot.Capture(run))); _log.AddSnapshot(_activeDay); _activeDay = null; }
             }
+            if (combatEvent.Type == EventType.RunLost) _log.CloseActiveHeroes(run, CharacterHistoryEndReason.RunLost);
+            if (combatEvent.Type == EventType.RunAbandoned) _log.CloseActiveHeroes(run, CharacterHistoryEndReason.RunAbandoned);
         }
     }
 }

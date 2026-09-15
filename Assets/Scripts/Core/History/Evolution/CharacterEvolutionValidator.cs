@@ -22,6 +22,7 @@ namespace MakeMeHero.Core
             var hero = run.FindHero(decision.UnitId);
             if (hero == null) result.AddError("UNIT_NOT_FOUND", "Hero unitId was not found.", "unitId");
             else if (hero.IsDead) result.AddError("UNIT_DEAD", "Dead heroes cannot evolve.", "unitId");
+            else if (!hero.CanRankUp) result.AddError("INSUFFICIENT_RANK_EXPERIENCE", "Hero needs five unspent rank experience to rank up.", "unitId");
 
             if (decision.StatAllocations == null || decision.StatAllocations.Count == 0) result.AddError("NO_ACTION", "At least one stat allocation is required.", "statAllocations");
             var seen = new HashSet<EvolvableStat>(); long total = 0;
@@ -32,7 +33,7 @@ namespace MakeMeHero.Core
                 if (allocation.Points <= 0) result.AddError("INVALID_POINTS", "Allocated points must be positive.", "statAllocations");
                 total += allocation.Points;
             }
-            if (hero != null && total > hero.DevelopmentPoints) result.AddError("INSUFFICIENT_DEVELOPMENT_POINTS", "Allocated points exceed the hero's available points.", "statAllocations");
+            if (hero != null && total > run.DevelopmentPointsAvailableForRankUp(hero)) result.AddError("INSUFFICIENT_DEVELOPMENT_POINTS", "Allocated points exceed the hero's available points after this rank up.", "statAllocations");
             return result;
         }
     }

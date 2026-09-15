@@ -22,7 +22,14 @@ namespace MakeMeHero.Core
         public void Recruit(string runId, HeroClass type) { var run = _repository.Find(runId); run.Recruit(type); _repository.Save(run); }
         public void Deploy(string runId, string heroId, GridPosition tile) { var run = _repository.Find(runId); run.Deploy(heroId, tile); _repository.Save(run); }
         public void Undeploy(string runId, string heroId) { var run = _repository.Find(runId); run.Undeploy(heroId); _repository.Save(run); }
-        public void RankUp(string runId, string heroId) { var run = _repository.Find(runId); run.RankUp(heroId); _repository.Save(run); }
+        /// <summary>Creates an external decision request; it deliberately does not mutate rank, experience, or stats.</summary>
+        public CharacterEvolutionRequest RequestRankUp(string runId, string heroId)
+        {
+            var run = _repository.Find(runId);
+            run.EnsureRankUpRequestEligible(heroId);
+            var hero = run.FindHero(heroId);
+            return new CharacterEvolutionRequest(run, hero, ResearchLog(runId));
+        }
         public void StartDay(string runId) { var run = _repository.Find(runId); run.StartDay(); _repository.Save(run); }
         public void AdvanceTime(string runId, decimal seconds) { var run = _repository.Find(runId); run.Advance(seconds); _repository.Save(run); }
         public void EndRun(string runId) { var run = _repository.Find(runId); run.Abandon(); _repository.Save(run); }
@@ -31,9 +38,8 @@ namespace MakeMeHero.Core
         public CharacterEvolutionRequest CreateEvolutionRequest(string runId, string heroId)
         {
             var run = _repository.Find(runId);
-            var hero = run.FindHero(heroId);
-            if (hero == null) throw new InvalidOperationException("Hero was not found.");
-            return new CharacterEvolutionRequest(run, hero);
+            run.EnsureRankUpRequestEligible(heroId);
+            return RequestRankUp(runId, heroId);
         }
     }
 }

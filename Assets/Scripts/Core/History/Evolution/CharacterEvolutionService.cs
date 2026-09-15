@@ -12,8 +12,9 @@ namespace MakeMeHero.Core
             if (!result.IsValid) return result;
             var hero = run.FindHero(decision.UnitId);
             var before = new EvolutionStatState(hero);
+            run.CompleteRankUp(hero);
             hero.ApplyEvolution(decision.StatAllocations, _statPolicy);
-            run.RecordEvolutionApplied(new EvolutionDecisionAudit(decision, before, new EvolutionStatState(hero)));
+            run.RecordEvolutionApplied(new EvolutionDecisionAudit(decision, run.Day, run.BattleTime, before, new EvolutionStatState(hero)));
             return result;
         }
     }

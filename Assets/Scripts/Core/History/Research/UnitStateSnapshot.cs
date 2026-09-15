@@ -14,6 +14,8 @@ namespace MakeMeHero.Core
             Archetype = hero == null ? character.GetType().Name : hero.Class.ToString();
             RankStars = hero == null ? 0 : hero.RankStars;
             DevelopmentPoints = hero == null ? 0 : hero.DevelopmentPoints;
+            LifetimeExperience = hero == null ? 0 : hero.LifetimeExperience;
+            UnspentRankExperience = hero == null ? 0 : hero.UnspentRankExperience;
             Skills = hero == null ? new List<string>() : new List<string> { hero.Skill.Id.ToString() };
             Placement = IsDead ? "Defeated" : Position == null ? "Reserve" : "Field";
         }
@@ -23,6 +25,8 @@ namespace MakeMeHero.Core
         public string Archetype { get; private set; }
         public int RankStars { get; private set; }
         public int DevelopmentPoints { get; private set; }
+        public int LifetimeExperience { get; private set; }
+        public int UnspentRankExperience { get; private set; }
         public decimal MaximumHp { get; private set; }
         public CharacterStats Stats { get; private set; }
         public decimal Hp { get; private set; }

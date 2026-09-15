@@ -45,8 +45,13 @@ namespace MakeMeHero.Core
         { EnsureStandby(); EnsureTile(tile); var hero = HeroById(heroId); if (hero.IsDead) throw new InvalidOperationException("Dead heroes cannot deploy."); if (_heroes.Count(x => x.Position.HasValue && x.Position.Value.Equals(tile) && !x.IsDead) >= 3) throw new InvalidOperationException("Tile is full of heroes."); hero.Position = tile; Record(new CombatEvent(EventType.Deployed, Day, BattleTime, hero.Id, detail: tile.ToString())); }
         public void Undeploy(string heroId)
         { EnsureStandby(); var hero = HeroById(heroId); hero.Position = null; Record(new CombatEvent(EventType.Undeployed, Day, BattleTime, hero.Id)); }
-        public void RankUp(string heroId)
-        { EnsureStandby(); var hero = HeroById(heroId); hero.RankUp(); var points = _developmentPointPolicy.PointsAwardedForRank(hero.RankStars); hero.AwardDevelopmentPoints(points); Record(new CombatEvent(EventType.RankUp, Day, BattleTime, hero.Id, value: hero.RankStars, detail: "DevelopmentPoints+" + points)); }
+        public void EnsureRankUpRequestEligible(string heroId)
+        {
+            EnsureStandby();
+            var hero = HeroById(heroId);
+            if (hero.IsDead) throw new InvalidOperationException("Dead heroes cannot rank up.");
+            if (!hero.CanRankUp) throw new InvalidOperationException("Hero needs five unspent rank experience to rank up.");
+        }
         public void StartDay()
         { EnsureStandby(); Phase = RunPhase.Battle; BattleTime = 0m; _wolves.Clear(); _guardEffects.Clear(); _spawned = 0; _totalToSpawn = _scaling.MonsterCountForDay(Day); _nextSpawnAt = 0m; foreach (var hero in _heroes.Where(x => !x.IsDead && x.Position.HasValue)) { hero.AttackReadyAt = 0m; hero.SkillReadyAt = 0m; } Record(new CombatEvent(EventType.DayStarted, Day, 0m, value: _totalToSpawn, detail: "Wolf")); }
         public void Abandon()
@@ -128,7 +133,7 @@ namespace MakeMeHero.Core
         private static int DistanceToCity(GridPosition p) { return p.Column + 1 + Math.Abs(p.Row - 1); }
         private void RecordDeaths() { }
         private void FinishIfComplete()
-        { if (_spawned != _totalToSpawn || _wolves.Any(x => !x.IsDead)) return; Phase = RunPhase.EndOfDay; Record(new CombatEvent(EventType.BattleCompleted, Day, BattleTime)); foreach (var hero in _heroes.Where(x => !x.IsDead && x.Position.HasValue)) { WriteSnapshot(hero); hero.AwardSurvivalDay(); hero.Restore(); } Gold += 10 + 5 * (Day - 1); Record(new CombatEvent(EventType.DayCompleted, Day, BattleTime, value: Gold)); Day++; Phase = RunPhase.Standby; }
+        { if (_spawned != _totalToSpawn || _wolves.Any(x => !x.IsDead)) return; Phase = RunPhase.EndOfDay; Record(new CombatEvent(EventType.BattleCompleted, Day, BattleTime)); foreach (var hero in _heroes.Where(x => !x.IsDead && x.Position.HasValue)) { WriteSnapshot(hero); hero.AwardSurvivalExperience(); hero.Restore(); } Gold += 10 + 5 * (Day - 1); Record(new CombatEvent(EventType.DayCompleted, Day, BattleTime, value: Gold)); Day++; Phase = RunPhase.Standby; }
         private void WriteSnapshot(Hero hero)
         { var e = _events.Where(x => x.Day == Day).ToList(); decimal dealt = e.Where(x => x.Type == EventType.Damage && x.SourceId == hero.Id).Sum(x => x.Value); decimal taken = e.Where(x => x.Type == EventType.Damage && x.TargetId == hero.Id).Sum(x => x.Value); decimal healed = e.Where(x => x.Type == EventType.Heal && x.SourceId == hero.Id).Sum(x => x.Value); int kills = e.Count(x => x.Type == EventType.Kill && x.SourceId == hero.Id); int casts = e.Count(x => x.Type == EventType.SkillCast && x.SourceId == hero.Id); _snapshots.Add(new ExperienceSnapshot(Day, hero.Id, dealt, taken, healed, kills, casts)); }
         private Hero CreateHero(HeroClass type) { var hero = HeroFactory.Create(type, type + "-" + (++_heroSequence), type + " #" + _heroSequence, _tuning.Hero(type)); _heroes.Add(hero); return hero; }
@@ -136,6 +141,14 @@ namespace MakeMeHero.Core
         private Hero HeroById(string id) { return _heroes.Single(x => x.Id == id); }
         internal Hero FindHero(string id) { return String.IsNullOrWhiteSpace(id) ? null : _heroes.FirstOrDefault(x => x.Id == id); }
         internal bool HasAppliedEvolutionDecision(string decisionId) { return _appliedEvolutionDecisionIds.Contains(decisionId); }
+        internal int DevelopmentPointsAvailableForRankUp(Hero hero)
+        { return hero.DevelopmentPoints + _developmentPointPolicy.PointsAwardedForRank(hero.RankStars + 1); }
+        internal void CompleteRankUp(Hero hero)
+        {
+            var points = _developmentPointPolicy.PointsAwardedForRank(hero.RankStars + 1);
+            hero.CompleteRankUp(points);
+            Record(new CombatEvent(EventType.RankUp, Day, BattleTime, hero.Id, value: hero.RankStars, detail: "DevelopmentPoints+" + points));
+        }
         internal void RecordEvolutionApplied(EvolutionDecisionAudit audit)
         {
             _appliedEvolutionDecisionIds.Add(audit.Decision.DecisionId);

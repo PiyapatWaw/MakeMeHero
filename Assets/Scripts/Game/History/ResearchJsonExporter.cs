@@ -28,10 +28,11 @@ namespace MakeMeHero.Game
 
         private sealed class RunExportSummary
         {
-            public RunExportSummary(ResearchRunLog log) { Metadata = log.Metadata; TotalCompletedDays = log.TotalCompletedDays; LifetimeStatistics = log.LifetimeStatistics; }
+            public RunExportSummary(ResearchRunLog log) { Metadata = log.Metadata; TotalCompletedDays = log.TotalCompletedDays; LifetimeStatistics = log.LifetimeStatistics; CharacterHistories = log.CharacterHistories; }
             public RunMetadata Metadata { get; private set; }
             public int TotalCompletedDays { get; private set; }
             public System.Collections.Generic.IDictionary<string, LifetimeUnitStatistics> LifetimeStatistics { get; private set; }
+            public System.Collections.Generic.IDictionary<string, CharacterHistory> CharacterHistories { get; private set; }
         }
     }
 }

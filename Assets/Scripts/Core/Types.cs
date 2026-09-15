@@ -9,4 +9,5 @@ namespace MakeMeHero.Core
     public enum UnitKind { Hero, Monster }
     public enum EvolvableStat { MaximumHp, AttackDamage, AttackInterval }
     public enum EvolutionDecisionSource { Human, RuleBased, ManualExternalLLM, ExternalAgent, ReinforcementLearning, Evolutionary, Unknown }
+    public enum CharacterHistoryEndReason { Died, RunLost, RunAbandoned }
 }

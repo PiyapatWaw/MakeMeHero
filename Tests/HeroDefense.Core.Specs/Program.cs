@@ -10,13 +10,15 @@ internal static class Program
     {
         StartsWithFourReserveHeroesAndGold();
         FormationAndRecruitAreStandbyOnly();
-        RankNeedsDeployedSurvivalDays();
+        RankRequestNeedsUnspentExperience();
         EmptyFieldStillResolvesEncounter();
         ResearchLoggingCapturesDailySnapshotAndRunClosure();
         EvolutionDecisionIsAtomicAndRecordedForNextDay();
         EvolutionDecisionRejectsInvalidState();
         EvolutionJsonImporterRejectsUntrustedInput();
         SharedCharacterStatsAndEvolutionRequestAreConsistent();
+        EvolutionRequestUsesLifetimeHistoryWindow();
+        EvolutionRequestStartsAtLatestRankUpBattle();
         Console.WriteLine("HeroDefense.Core smoke specifications passed.");
     }
 
@@ -44,12 +46,12 @@ internal static class Program
         ExpectThrows(() => run.Deploy(soldier.Id, new GridPosition(1, 1)));
     }
 
-    private static void RankNeedsDeployedSurvivalDays()
+    private static void RankRequestNeedsUnspentExperience()
     {
         var run = NewRun();
         var soldier = run.Heroes.Single(x => x.Class == HeroClass.Soldier);
         Assert(!soldier.CanRankUp, "Fresh hero cannot rank up.");
-        ExpectThrows(() => run.RankUp(soldier.Id));
+        ExpectThrows(() => run.EnsureRankUpRequestEligible(soldier.Id));
     }
 
     private static void EmptyFieldStillResolvesEncounter()
@@ -83,9 +85,11 @@ internal static class Program
         Assert(day.BoardAfterBattle.CityHp == 22m, "Board after battle should preserve City damage before reward state.");
         Assert(day.StandbyStateAfterReward != null, "Post-reward Standby state should be captured separately.");
         Assert(day.UnitCombatResults.Count(x => x.Kind == UnitKind.Monster) == 3, "Each spawned Wolf should have a combat result.");
+        Assert(log.CharacterHistories.Count == 5 && log.CharacterHistories["Soldier-1"].Days.Count == 1, "Each starting hero should retain a target-centric lifetime day history.");
 
         service.EndRun(run.Id);
         Assert(log.Metadata.EndReason == RunEndReason.Abandoned && log.Metadata.EndedAtUtc.HasValue, "Abandoned run should record terminal metadata.");
+        Assert(log.CharacterHistories["Soldier-1"].EndReason == CharacterHistoryEndReason.RunAbandoned, "An ended run should close living hero lifetime histories.");
     }
 
     private static void EvolutionDecisionIsAtomicAndRecordedForNextDay()
@@ -94,16 +98,16 @@ internal static class Program
         var service = new RunApplicationService(repository, CombatTuning.Phase0(), new ExponentialEncounterScalingPolicy(), seed => new FixedRandom(), new FixedClock());
         var run = service.CreateRun(new RunStartOptions(9));
         var soldier = run.Heroes.Single(x => x.Class == HeroClass.Soldier);
-        for (var day = 0; day < 5; day++) soldier.AwardSurvivalDay();
-        service.RankUp(run.Id, soldier.Id);
-        Assert(soldier.DevelopmentPoints == 5, "A rank up should award five development points.");
+        for (var experienceDay = 0; experienceDay < 5; experienceDay++) soldier.AwardSurvivalExperience();
+        var request = service.RequestRankUp(run.Id, soldier.Id);
+        Assert(request.AvailableDevelopmentPoints == 5 && soldier.RankStars == 1 && soldier.UnspentRankExperience == 5, "A RankUp request must not mutate the hero before a decision applies.");
 
         var valid = new CharacterEvolutionDecision(1, "evolution-smoke-1", run.Id, soldier.Id, run.Day,
             new List<StatAllocation> { new StatAllocation(EvolvableStat.MaximumHp, 3), new StatAllocation(EvolvableStat.AttackDamage, 2) }, null,
             new EvolutionDecisionMetadata(EvolutionDecisionSource.ManualExternalLLM, "smoke"));
         var applied = service.ApplyEvolutionDecision(run.Id, valid);
         Assert(applied.IsValid, "A valid evolution allocation should apply.");
-        Assert(soldier.DevelopmentPoints == 0 && soldier.MaximumHp == 60m && soldier.AttackDamage == 8m, "Evolution stat deltas should be deterministic.");
+        Assert(soldier.DevelopmentPoints == 0 && soldier.MaximumHp == 60m && soldier.AttackDamage == 8m && soldier.RankStars == 2 && soldier.UnspentRankExperience == 0, "Evolution rank-up transaction should apply deterministic stats and consume five experience.");
 
         var duplicate = service.ApplyEvolutionDecision(run.Id, valid);
         Assert(!duplicate.IsValid && duplicate.Errors.Any(x => x.Code == "DUPLICATE_DECISION"), "Applied decision ids must be idempotent.");
@@ -127,10 +131,9 @@ internal static class Program
         var service = new RunApplicationService(repository, CombatTuning.Phase0(), new ExponentialEncounterScalingPolicy(), seed => new FixedRandom(), new FixedClock());
         var run = service.CreateRun(new RunStartOptions(10));
         var hero = run.Heroes.First();
-        for (var day = 0; day < 5; day++) hero.AwardSurvivalDay();
-        service.RankUp(run.Id, hero.Id);
+        for (var day = 0; day < 5; day++) hero.AwardSurvivalExperience();
         var tooMany = new CharacterEvolutionDecision(1, "too-many", run.Id, hero.Id, run.Day, new List<StatAllocation> { new StatAllocation(EvolvableStat.MaximumHp, 6) }, null, EvolutionDecisionMetadata.Unknown);
-        Assert(!service.ApplyEvolutionDecision(run.Id, tooMany).IsValid && hero.DevelopmentPoints == 5, "Too many points should reject without spending points.");
+        Assert(!service.ApplyEvolutionDecision(run.Id, tooMany).IsValid && hero.DevelopmentPoints == 0 && hero.RankStars == 1, "Too many points should reject without consuming rank experience or awarding points.");
         service.StartDay(run.Id);
         var combatPhase = new CharacterEvolutionDecision(1, "combat-phase", run.Id, hero.Id, run.Day, new List<StatAllocation> { new StatAllocation(EvolvableStat.MaximumHp, 1) }, null, EvolutionDecisionMetadata.Unknown);
         Assert(!service.ApplyEvolutionDecision(run.Id, combatPhase).IsValid && hero.MaximumHp == 45m, "Evolution must reject during combat without mutation.");
@@ -154,14 +157,45 @@ internal static class Program
         var soldier = run.Heroes.Single(x => x.Class == HeroClass.Soldier);
         var wolf = new Wolf("wolf-stats", CombatTuning.Phase0().Wolf);
         Assert(soldier.Stats.MaximumHp == soldier.MaximumHp && wolf.Stats.AttackDamage == wolf.AttackDamage, "Hero and Monster should expose the same CharacterStats value type.");
-        for (var day = 0; day < 5; day++) soldier.AwardSurvivalDay();
-        service.RankUp(run.Id, soldier.Id);
+        for (var day = 0; day < 5; day++) soldier.AwardSurvivalExperience();
         var request = service.CreateEvolutionRequest(run.Id, soldier.Id);
         Assert(request.AvailableDevelopmentPoints == 5 && request.CurrentStats.MaximumHp == 45m, "External evolution request should state the available five points and current shared stat block.");
         var requestJson = new CharacterEvolutionRequestJsonExporter().Serialize(request);
-        Assert(requestJson.Contains("\"AvailableDevelopmentPoints\": 5"), "External request JSON should explicitly disclose the five allocatable points.");
+        Assert(requestJson.Contains("\"availableDevelopmentPoints\": 5"), "External request JSON should explicitly disclose the five allocatable points in camelCase.");
         var decision = new CharacterEvolutionDecision(1, "stats-struct", run.Id, soldier.Id, run.Day, new List<StatAllocation> { new StatAllocation(EvolvableStat.MaximumHp, 5) }, null, EvolutionDecisionMetadata.Unknown);
         Assert(service.ApplyEvolutionDecision(run.Id, decision).IsValid && soldier.Stats.MaximumHp == 70m, "Evolution allocation should create a delta and apply it through CharacterStats.");
+    }
+
+    private static void EvolutionRequestUsesLifetimeHistoryWindow()
+    {
+        var repository = new InMemoryRunRepository();
+        var service = new RunApplicationService(repository, CombatTuning.Phase0(), new ExponentialEncounterScalingPolicy(), seed => new FixedRandom(), new FixedClock());
+        var run = service.CreateRun(new RunStartOptions(12));
+        var soldier = run.Heroes.Single(x => x.Class == HeroClass.Soldier);
+        service.StartDay(run.Id);
+        service.AdvanceTime(run.Id, 10m);
+        for (var experienceDay = 0; experienceDay < 5; experienceDay++) soldier.AwardSurvivalExperience();
+        var request = service.CreateEvolutionRequest(run.Id, soldier.Id);
+        Assert(request.Days.Count == 1 && request.HistoryWindowStartDay == 1, "First RankUp request should include lifetime history from the hero's first day.");
+        var day = request.Days[0];
+        Assert(day.Standby.Reserve.Any(member => member.UnitId == soldier.Id && member.Alive), "Standby snapshot should expose an alive target in the reserve roster.");
+        Assert(day.Battle != null && day.End != null && day.End.Self.UnitId == soldier.Id, "Every history day should contain standby, battle, and end snapshots.");
+    }
+
+    private static void EvolutionRequestStartsAtLatestRankUpBattle()
+    {
+        var repository = new InMemoryRunRepository();
+        var service = new RunApplicationService(repository, CombatTuning.Phase0(), new ExponentialEncounterScalingPolicy(), seed => new FixedRandom(), new FixedClock());
+        var run = service.CreateRun(new RunStartOptions(13));
+        var soldier = run.Heroes.Single(x => x.Class == HeroClass.Soldier);
+        service.StartDay(run.Id); service.AdvanceTime(run.Id, 10m);
+        for (var experienceDay = 0; experienceDay < 5; experienceDay++) soldier.AwardSurvivalExperience();
+        var first = new CharacterEvolutionDecision(1, "latest-window-first", run.Id, soldier.Id, run.Day, new List<StatAllocation> { new StatAllocation(EvolvableStat.MaximumHp, 1) }, null, EvolutionDecisionMetadata.Unknown);
+        Assert(service.ApplyEvolutionDecision(run.Id, first).IsValid, "First rank-up should apply during Standby.");
+        service.StartDay(run.Id); service.AdvanceTime(run.Id, 10m);
+        for (var experienceDay = 0; experienceDay < 5; experienceDay++) soldier.AwardSurvivalExperience();
+        var request = service.CreateEvolutionRequest(run.Id, soldier.Id);
+        Assert(request.BaselineEvolution != null && request.HistoryWindowStartDay == 2 && request.Days.Count == 1 && request.Days[0].Day == 2, "Later RankUp requests must begin with the battle day where the latest rank was applied.");
     }
 
     private static void Assert(bool condition, string message) { if (!condition) throw new Exception(message); }
