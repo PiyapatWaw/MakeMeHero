@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Assets/Scripts/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../Assets/Scripts/Game/Evolution/CharacterEvolutionJsonImporter.cs" Link="Game/Evolution/CharacterEvolutionJsonImporter.cs" />
   </ItemGroup>
 </Project>

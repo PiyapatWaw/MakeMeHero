@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using MakeMeHero.Core;
 using UnityEngine;
 
@@ -19,6 +21,9 @@ namespace MakeMeHero.Game
         private RunApplicationService _service;
         private Run _run;
         private Coroutine _battleRoutine;
+        private ResearchJsonExporter _researchExporter;
+        private CharacterEvolutionJsonImporter _evolutionImporter;
+        private readonly HashSet<string> _exportedResearchRunIds = new HashSet<string>();
 
         public Run CurrentRun { get { return _run; } }
         public Pooling Pooling { get; private set; }
@@ -35,13 +40,16 @@ namespace MakeMeHero.Game
             Instance = this;
             DontDestroyOnLoad(gameObject);
             Pooling = new Pooling(transform);
+            _researchExporter = new ResearchJsonExporter(Path.Combine(Application.persistentDataPath, "research_logs"));
+            _evolutionImporter = new CharacterEvolutionJsonImporter();
 
             _repository = new InMemoryRunRepository();
             _service = new RunApplicationService(
                 _repository,
                 CombatTuning.Phase0(),
                 new ExponentialEncounterScalingPolicy(),
-                new SystemRandomSource());
+                seed => new SystemRandomSource(seed),
+                new SystemRunClock());
             CreateNewRun();
             if (startFirstDayOnAwake) StartDay();
         }
@@ -76,6 +84,22 @@ namespace MakeMeHero.Game
         public void Deploy(string heroId, int column, int row) { Execute(delegate { _service.Deploy(_run.Id, heroId, new GridPosition(column, row)); }); }
         public void Undeploy(string heroId) { Execute(delegate { _service.Undeploy(_run.Id, heroId); }); }
         public void RankUp(string heroId) { Execute(delegate { _service.RankUp(_run.Id, heroId); }); }
+        public void EndRun() { Execute(delegate { _service.EndRun(_run.Id); }); StopBattleLoop(); }
+        public EvolutionDecisionResult ValidateEvolutionJson(string json)
+        {
+            CharacterEvolutionDecision decision;
+            var parse = _evolutionImporter.TryImport(json, out decision);
+            return parse.IsValid ? _service.ValidateEvolutionDecision(_run.Id, decision) : parse;
+        }
+        public EvolutionDecisionResult ApplyEvolutionJson(string json)
+        {
+            CharacterEvolutionDecision decision;
+            var parse = _evolutionImporter.TryImport(json, out decision);
+            if (!parse.IsValid) return parse;
+            var result = _service.ApplyEvolutionDecision(_run.Id, decision);
+            if (result.IsValid) NotifyRunChanged();
+            return result;
+        }
 
         private void Execute(Action command)
         {
@@ -87,6 +111,14 @@ namespace MakeMeHero.Game
         private void NotifyRunChanged()
         {
             if (RunChanged != null) RunChanged(_run);
+            ExportTerminalResearchLog();
+        }
+
+        private void ExportTerminalResearchLog()
+        {
+            if (_run == null || !_run.Metadata.EndedAtUtc.HasValue || _exportedResearchRunIds.Contains(_run.Id)) return;
+            _researchExporter.Export(_service.ResearchLog(_run.Id));
+            _exportedResearchRunIds.Add(_run.Id);
         }
 
         private void Reject(string message)
