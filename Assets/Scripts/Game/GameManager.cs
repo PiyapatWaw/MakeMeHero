@@ -15,6 +15,7 @@ namespace MakeMeHero.Game
         public static GameManager Instance { get; private set; }
 
         [SerializeField, Min(0.01f)] private float battleTickSeconds = 1f;
+        [SerializeField, Min(0.1f)] private float battleSpeed = 1f;
         [SerializeField] private bool startFirstDayOnAwake;
 
         private IRunRepository _repository;
@@ -25,8 +26,10 @@ namespace MakeMeHero.Game
         private CharacterEvolutionJsonImporter _evolutionImporter;
         private CharacterEvolutionRequestJsonExporter _evolutionRequestExporter;
         private readonly HashSet<string> _exportedResearchRunIds = new HashSet<string>();
+        private bool _battlePaused;
 
         public Run CurrentRun { get { return _run; } }
+        public ResearchRunLog CurrentResearchLog { get { return _run == null ? null : _service.ResearchLog(_run.Id); } }
         public Pooling Pooling { get; private set; }
         public event Action<Run> RunChanged;
         public event Action<string> CommandRejected;
@@ -85,8 +88,11 @@ namespace MakeMeHero.Game
         public void Recruit(HeroClass heroClass) { Execute(delegate { _service.Recruit(_run.Id, heroClass); }); }
         public void Deploy(string heroId, int column, int row) { Execute(delegate { _service.Deploy(_run.Id, heroId, new GridPosition(column, row)); }); }
         public void Undeploy(string heroId) { Execute(delegate { _service.Undeploy(_run.Id, heroId); }); }
-        public void RankUp(string heroId) { Execute(delegate { _service.RankUp(_run.Id, heroId); }); }
+        /// <summary>Returns the JSON request to give an external evolution decision maker; no state changes yet.</summary>
+        public string RankUp(string heroId) { return ExecuteValue(delegate { return _evolutionRequestExporter.Serialize(_service.RequestRankUp(_run.Id, heroId)); }); }
         public void EndRun() { Execute(delegate { _service.EndRun(_run.Id); }); StopBattleLoop(); }
+        public void SetBattlePaused(bool paused) { _battlePaused = paused; }
+        public void SetBattleSpeed(float multiplier) { battleSpeed = Mathf.Max(0.1f, multiplier); }
         public EvolutionDecisionResult ValidateEvolutionJson(string json)
         {
             CharacterEvolutionDecision decision;
@@ -112,6 +118,12 @@ namespace MakeMeHero.Game
             try { command(); NotifyRunChanged(); }
             catch (InvalidOperationException exception) { Reject(exception.Message); }
             catch (ArgumentOutOfRangeException exception) { Reject(exception.Message); }
+        }
+        private T ExecuteValue<T>(Func<T> command)
+        {
+            try { return command(); }
+            catch (InvalidOperationException exception) { Reject(exception.Message); return default(T); }
+            catch (ArgumentOutOfRangeException exception) { Reject(exception.Message); return default(T); }
         }
 
         private void NotifyRunChanged()
@@ -150,7 +162,8 @@ namespace MakeMeHero.Game
         {
             while (_run != null && _run.Phase == RunPhase.Battle)
             {
-                yield return new WaitForSeconds(battleTickSeconds);
+                if (_battlePaused) { yield return null; continue; }
+                yield return new WaitForSeconds(battleTickSeconds / battleSpeed);
                 if (_run != null && _run.Phase == RunPhase.Battle)
                     Execute(delegate { _service.AdvanceTime(_run.Id, (decimal)battleTickSeconds); });
             }

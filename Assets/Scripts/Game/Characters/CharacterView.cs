@@ -9,6 +9,7 @@ namespace MakeMeHero.Game
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private Animator animator;
         [SerializeField] private string characterId;
+        [SerializeField] private HealthBarView healthBar;
 
         protected Character BoundCharacter { get; private set; }
         public string CharacterId { get { return characterId; } }
@@ -26,6 +27,7 @@ namespace MakeMeHero.Game
         {
             if (BoundCharacter == null) return;
             gameObject.SetActive(!BoundCharacter.IsDead);
+            if (healthBar != null) healthBar.SetHealth(BoundCharacter.Hp, BoundCharacter.MaximumHp);
         }
 
         public void FaceRight(bool facingRight)
