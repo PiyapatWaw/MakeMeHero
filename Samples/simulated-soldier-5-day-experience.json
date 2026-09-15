@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "sampleKind": "SimulatedCharacterExperience",
+  "simulationNote": "Illustrative research sample. Compare each previous end snapshot with the next standby snapshot to infer formation changes.",
+  "run": {
+    "runId": "sample-run-001",
+    "completedDays": 5
+  },
+  "targetUnit": {
+    "unitId": "Soldier-1",
+    "class": "Soldier"
+  },
+  "days": [
+    {
+      "day": 1,
+      "standby": {
+        "self": { "unitId": "Soldier-1", "position": "1,1", "alive": true },
+        "rooms": [
+          {
+            "position": "1,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Soldier-2", "class": "Soldier", "alive": true },
+              { "unitId": "Healer-1", "class": "Healer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": []
+      },
+      "battle": {
+        "damageDealt": 30,
+        "damageTaken": 10,
+        "healingReceived": 0,
+        "kills": 1,
+        "skillUsage": { "Guard": 1 }
+      },
+      "end": {
+        "self": { "unitId": "Soldier-1", "position": "1,1", "alive": true, "hpAfterBattle": 35 },
+        "rooms": [
+          {
+            "position": "1,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Soldier-2", "class": "Soldier", "alive": true },
+              { "unitId": "Healer-1", "class": "Healer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": []
+      }
+    },
+    {
+      "day": 2,
+      "standby": {
+        "self": { "unitId": "Soldier-1", "position": "1,1", "alive": true },
+        "rooms": [
+          {
+            "position": "1,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Soldier-2", "class": "Soldier", "alive": true }
+            ]
+          },
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Healer-1", "class": "Healer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": []
+      },
+      "battle": {
+        "damageDealt": 42,
+        "damageTaken": 15,
+        "healingReceived": 0,
+        "kills": 2,
+        "skillUsage": { "Guard": 1 }
+      },
+      "end": {
+        "self": { "unitId": "Soldier-1", "position": "1,1", "alive": true, "hpAfterBattle": 30 },
+        "rooms": [
+          {
+            "position": "1,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Soldier-2", "class": "Soldier", "alive": false, "deathCause": "Damage", "killedBy": "Wolf-7" }
+            ]
+          },
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Healer-1", "class": "Healer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": []
+      }
+    },
+    {
+      "day": 3,
+      "standby": {
+        "self": { "unitId": "Soldier-1", "position": "0,1", "alive": true },
+        "rooms": [
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Healer-1", "class": "Healer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": [
+          { "unitId": "Archer-1", "class": "Archer", "alive": true }
+        ]
+      },
+      "battle": {
+        "damageDealt": 54,
+        "damageTaken": 20,
+        "healingReceived": 14,
+        "kills": 2,
+        "skillUsage": { "Guard": 1 },
+        "supportReceived": [
+          { "sourceUnitId": "Healer-1", "skill": "Heal", "amount": 14 }
+        ]
+      },
+      "end": {
+        "self": { "unitId": "Soldier-1", "position": "0,1", "alive": true, "hpAfterBattle": 39 },
+        "rooms": [
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Healer-1", "class": "Healer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": [
+          { "unitId": "Archer-1", "class": "Archer", "alive": true }
+        ]
+      }
+    },
+    {
+      "day": 4,
+      "standby": {
+        "self": { "unitId": "Soldier-1", "position": "0,1", "alive": true },
+        "rooms": [
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Healer-1", "class": "Healer", "alive": true },
+              { "unitId": "Archer-1", "class": "Archer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": []
+      },
+      "battle": {
+        "damageDealt": 66,
+        "damageTaken": 25,
+        "healingReceived": 28,
+        "kills": 3,
+        "skillUsage": { "Guard": 2 },
+        "supportReceived": [
+          { "sourceUnitId": "Healer-1", "skill": "Heal", "amount": 28 }
+        ]
+      },
+      "end": {
+        "self": { "unitId": "Soldier-1", "position": "0,1", "alive": true, "hpAfterBattle": 42 },
+        "rooms": [
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Healer-1", "class": "Healer", "alive": true },
+              { "unitId": "Archer-1", "class": "Archer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": []
+      }
+    },
+    {
+      "day": 5,
+      "standby": {
+        "self": { "unitId": "Soldier-1", "position": "0,1", "alive": true },
+        "rooms": [
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Archer-1", "class": "Archer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": [
+          { "unitId": "Healer-1", "class": "Healer", "alive": true }
+        ]
+      },
+      "battle": {
+        "damageDealt": 78,
+        "damageTaken": 30,
+        "healingReceived": 0,
+        "kills": 3,
+        "skillUsage": { "Guard": 2 }
+      },
+      "end": {
+        "self": { "unitId": "Soldier-1", "position": "0,1", "alive": true, "hpAfterBattle": 15 },
+        "rooms": [
+          {
+            "position": "0,1",
+            "members": [
+              { "unitId": "Soldier-1", "class": "Soldier", "alive": true },
+              { "unitId": "Archer-1", "class": "Archer", "alive": true }
+            ]
+          }
+        ],
+        "reserve": [
+          { "unitId": "Healer-1", "class": "Healer", "alive": true }
+        ]
+      }
+    }
+  ],
+  "evolutionRequestForDay6": {
+    "availableDevelopmentPoints": 5,
+    "currentStats": { "maximumHp": 45, "attackDamage": 6, "attackInterval": 1.0 },
+    "allowedStats": ["MaximumHp", "AttackDamage", "AttackInterval"]
+  }
+}
