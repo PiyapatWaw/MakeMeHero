@@ -28,5 +28,12 @@ namespace MakeMeHero.Core
         public void EndRun(string runId) { var run = _repository.Find(runId); run.Abandon(); _repository.Save(run); }
         public EvolutionDecisionResult ValidateEvolutionDecision(string runId, CharacterEvolutionDecision decision) { return _evolutionService.Validate(_repository.Find(runId), decision); }
         public EvolutionDecisionResult ApplyEvolutionDecision(string runId, CharacterEvolutionDecision decision) { var run = _repository.Find(runId); var result = _evolutionService.Apply(run, decision); if (result.IsValid) _repository.Save(run); return result; }
+        public CharacterEvolutionRequest CreateEvolutionRequest(string runId, string heroId)
+        {
+            var run = _repository.Find(runId);
+            var hero = run.FindHero(heroId);
+            if (hero == null) throw new InvalidOperationException("Hero was not found.");
+            return new CharacterEvolutionRequest(run, hero);
+        }
     }
 }

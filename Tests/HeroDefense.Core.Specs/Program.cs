@@ -16,6 +16,7 @@ internal static class Program
         EvolutionDecisionIsAtomicAndRecordedForNextDay();
         EvolutionDecisionRejectsInvalidState();
         EvolutionJsonImporterRejectsUntrustedInput();
+        SharedCharacterStatsAndEvolutionRequestAreConsistent();
         Console.WriteLine("HeroDefense.Core smoke specifications passed.");
     }
 
@@ -143,6 +144,24 @@ internal static class Program
         Assert(valid.IsValid && decision != null && decision.StatAllocations[0].Stat == EvolvableStat.MaximumHp, "Valid external JSON should deserialize into a method-agnostic decision.");
         var invalid = importer.TryImport("{\"schemaVersion\":1,\"unexpected\":true}", out decision);
         Assert(!invalid.IsValid && invalid.Errors.Any(x => x.Code == "UNKNOWN_FIELD"), "Unknown external JSON fields must be rejected before validation.");
+    }
+
+    private static void SharedCharacterStatsAndEvolutionRequestAreConsistent()
+    {
+        var repository = new InMemoryRunRepository();
+        var service = new RunApplicationService(repository, CombatTuning.Phase0(), new ExponentialEncounterScalingPolicy(), seed => new FixedRandom(), new FixedClock());
+        var run = service.CreateRun(new RunStartOptions(11));
+        var soldier = run.Heroes.Single(x => x.Class == HeroClass.Soldier);
+        var wolf = new Wolf("wolf-stats", CombatTuning.Phase0().Wolf);
+        Assert(soldier.Stats.MaximumHp == soldier.MaximumHp && wolf.Stats.AttackDamage == wolf.AttackDamage, "Hero and Monster should expose the same CharacterStats value type.");
+        for (var day = 0; day < 5; day++) soldier.AwardSurvivalDay();
+        service.RankUp(run.Id, soldier.Id);
+        var request = service.CreateEvolutionRequest(run.Id, soldier.Id);
+        Assert(request.AvailableDevelopmentPoints == 5 && request.CurrentStats.MaximumHp == 45m, "External evolution request should state the available five points and current shared stat block.");
+        var requestJson = new CharacterEvolutionRequestJsonExporter().Serialize(request);
+        Assert(requestJson.Contains("\"AvailableDevelopmentPoints\": 5"), "External request JSON should explicitly disclose the five allocatable points.");
+        var decision = new CharacterEvolutionDecision(1, "stats-struct", run.Id, soldier.Id, run.Day, new List<StatAllocation> { new StatAllocation(EvolvableStat.MaximumHp, 5) }, null, EvolutionDecisionMetadata.Unknown);
+        Assert(service.ApplyEvolutionDecision(run.Id, decision).IsValid && soldier.Stats.MaximumHp == 70m, "Evolution allocation should create a delta and apply it through CharacterStats.");
     }
 
     private static void Assert(bool condition, string message) { if (!condition) throw new Exception(message); }

@@ -23,6 +23,7 @@ namespace MakeMeHero.Game
         private Coroutine _battleRoutine;
         private ResearchJsonExporter _researchExporter;
         private CharacterEvolutionJsonImporter _evolutionImporter;
+        private CharacterEvolutionRequestJsonExporter _evolutionRequestExporter;
         private readonly HashSet<string> _exportedResearchRunIds = new HashSet<string>();
 
         public Run CurrentRun { get { return _run; } }
@@ -42,6 +43,7 @@ namespace MakeMeHero.Game
             Pooling = new Pooling(transform);
             _researchExporter = new ResearchJsonExporter(Path.Combine(Application.persistentDataPath, "research_logs"));
             _evolutionImporter = new CharacterEvolutionJsonImporter();
+            _evolutionRequestExporter = new CharacterEvolutionRequestJsonExporter();
 
             _repository = new InMemoryRunRepository();
             _service = new RunApplicationService(
@@ -99,6 +101,10 @@ namespace MakeMeHero.Game
             var result = _service.ApplyEvolutionDecision(_run.Id, decision);
             if (result.IsValid) NotifyRunChanged();
             return result;
+        }
+        public string ExportEvolutionRequestJson(string heroId)
+        {
+            return _evolutionRequestExporter.Serialize(_service.CreateEvolutionRequest(_run.Id, heroId));
         }
 
         private void Execute(Action command)

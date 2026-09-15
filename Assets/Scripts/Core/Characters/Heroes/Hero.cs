@@ -4,7 +4,7 @@ namespace MakeMeHero.Core
 {
     public abstract class Hero : Character
     {
-        protected Hero(string id, string name, HeroClass heroClass, HeroStats stats) : base(id, name, stats.Hp, stats.Attack, stats.AttackInterval)
+        protected Hero(string id, string name, HeroClass heroClass, HeroStats stats) : base(id, name, stats.CharacterStats)
         { Class = heroClass; Skill = stats.Skill; RankStars = 1; }
 
         public HeroClass Class { get; private set; }
@@ -21,17 +21,8 @@ namespace MakeMeHero.Core
         internal void ApplyEvolution(System.Collections.Generic.IEnumerable<StatAllocation> allocations, EvolutionPolicy policy)
         {
             var spent = 0;
-            foreach (var allocation in allocations)
-            {
-                spent += allocation.Points;
-                var delta = policy.DeltaFor(allocation.Stat, allocation.Points);
-                switch (allocation.Stat)
-                {
-                    case EvolvableStat.MaximumHp: IncreaseMaximumHp(delta); break;
-                    case EvolvableStat.AttackDamage: IncreaseAttackDamage(delta); break;
-                    case EvolvableStat.AttackInterval: ReduceAttackInterval(delta, EvolutionPolicy.MinimumAttackInterval); break;
-                }
-            }
+            foreach (var allocation in allocations) spent += allocation.Points;
+            ApplyStatDelta(policy.CreateDelta(allocations));
             DevelopmentPoints -= spent;
         }
     }

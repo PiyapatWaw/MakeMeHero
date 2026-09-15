@@ -7,6 +7,7 @@ namespace MakeMeHero.Core
         public UnitStateSnapshot(Character character)
         {
             UnitId = character.Id; DisplayName = character.DisplayName; MaximumHp = character.MaximumHp; Hp = character.Hp;
+            Stats = character.Stats;
             AttackDamage = character.AttackDamage; AttackInterval = character.AttackInterval; Position = character.Position.HasValue ? character.Position.Value.ToString() : null; IsDead = character.IsDead;
             var hero = character as Hero;
             Kind = hero == null ? UnitKind.Monster : UnitKind.Hero;
@@ -23,6 +24,7 @@ namespace MakeMeHero.Core
         public int RankStars { get; private set; }
         public int DevelopmentPoints { get; private set; }
         public decimal MaximumHp { get; private set; }
+        public CharacterStats Stats { get; private set; }
         public decimal Hp { get; private set; }
         public decimal AttackDamage { get; private set; }
         public decimal AttackInterval { get; private set; }
